@@ -18,7 +18,7 @@ const getLetterFrequencies = (word) => {
     return letterFrequencies;
 }
 
-const GameRecap = ({isOpen}) => {
+export const GameRecap = ({isOpen}) => {
     const [show, setShow] = useState(isOpen);
     const { answer, currentRound } = useGameState();
 
@@ -41,7 +41,7 @@ const GameRecap = ({isOpen}) => {
     );
 }
 
-const RestartGameButton = () => {
+export const RestartGameButton = () => {
     const { dispatch } = useGameDispatch();
     
     const handleClick = (e) => {
@@ -364,14 +364,13 @@ export const Keyboard = ({ handleKeyPress, handleSubmit }) => {
     );
 };
 
-const Wordleaux = ([props]) => {
+const Wordleaux = () => {
+    // const { status } = useGameState();
+    // console.log(status);
     return (
-        <GameContext.Provider initialState={initialState} reducer={reducer}>
-            <div className="game-container">
-                <h1>Wordleaux</h1>
-                <Game />
-            </div>
-        </GameContext.Provider>
+        <div>
+            hi
+        </div>
     );
 }
 

@@ -1,12 +1,20 @@
-import * as fs from 'fs';
+import { ANSWER_WORDS } from './lists/words_answers';
 
-// TODO add support to write a - USED to the file for a word once picked so there are no repeats
-export const getNewAnswer = async () => {
-    const fileName = './lists/words_answers.txt';
-    const file = await fs.readFile(fileName);
-    const answers = file.split('/n');
+const filterWords = (words) => {
+    return Object.fromEntries(Object.entries(words).filter(([word, isUsed]) => {
+        return isUsed === false;
+    }))
+};
 
-    return answers[Math.floor(Math.random()*answers.length)]
+export const getNewAnswer = () => {
+    const unusedWords = filterWords(ANSWER_WORDS);
+    console.log("unusedWords", unusedWords);
+    const wordIndex = Math.floor(Math.random()*Object.keys(unusedWords).length);
+    console.log("wordIndex", wordIndex)
+    const word = Object.keys(unusedWords)[wordIndex];
+    console.log("word", word)
+    ANSWER_WORDS[word] = true;
+    return word;
 };
 
 // Possible Status values: 'NEW' | 'ON' | 'ENDED'
