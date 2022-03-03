@@ -1,4 +1,5 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
+
 //   BrowserRouter,
 //   Routes,
 //   Route,
@@ -47,199 +48,632 @@ import React, { useEffect } from 'react';
 import "../App.css";
 import GameContext, { useGameState, useGameDispatch } from "./GameContext";
 import { initialState, reducer } from "../state";
+import { GAME_WORDS } from "../lists/words";
+import { keyboard } from '@testing-library/user-event/dist/keyboard';
+const PREVENTED_KEYS = ['altKey', 'metaKey', 'ctrlKey'];
 // import { GameRecap, RestartGameButton } from '../Wordleaux';
 // import Gameboard from './Gameboard';
 // import { Keyboard } from './Keyboard';
 
-export const Gameboard = () => {
+const times = (length, fn) => Array.from({ length }, (_, i) => fn(i));
+
+// const CurrentBoard = ({board}) => {
+//   const initialSpots = Array.from(5)
+//   return (
+//       <>
+//       {board.rows.map((row,i) => {
+//           return (
+//             <>
+//               <div className="row" id={`row-${i}`}>
+//                   {Object.values(row).map(({ letter, color, s }) => {
+//                       return (
+//                           <div
+//                             className={`spot spot-${color}`}
+//                             id={`round-${i}-spot-${s}`}
+//                             data-letter="letter"
+//                             key={`round-${i}-spot-${s}`}
+//                           >
+//                             <input value={letter} type="text" />
+//                           </div>
+//                       );
+//                   })}
+//               </div>
+//           </>
+//           );
+//       })}
+//       <div className="guess-row guess-row--active" id={`row-${board.length}`}>
+//           {times(5, s => (
+//             <div
+//               className={`spot spot-empty`}
+//               id={`round-${board.length}-spot-${s}`}
+//               data-letter="letter"
+//               key={`round-${board.length}-spot-${s}`}
+//             >
+//               <input value={''} type="text" />
+//             </div>
+//           ))}; 
+//       </div>
+//       </>
+//   );
+// };
+
+// const renderRowHTML = (rowIndex) => (
+//   <div className="guess-row" id={`row-${rowIndex}`}>
+//     {times(5, s => (
+//       <div
+//         className="spot spot-empty"
+//         id={`round-${rowIndex}-spot-${s}`}
+//         key={`round-${rowIndex}-spot-${s}`}
+//       >
+//         <p>&nbsp;</p>
+//       </div>
+//     ))}
+//   </div>
+// );
+export const Toaster = ({
+  name = "unnamed",
+}) => {
+  const { toasterMessage, toasterDuration } = useGameState();
+  const dispatch = useGameDispatch();
+
+  useEffect(() => {
+    if (toasterDuration > 0) {
+      window.setTimeout(() => {
+        dispatch({ type: "ADD_TOASTER_STATE", payload:  { message: "", duration: 0 }})
+      }, toasterDuration);
+    }
+  }, [toasterMessage, toasterDuration, dispatch]);
+
   return (
-    <div>
-      I am the gameboard
+    <div className={!!toasterMessage ? "show" : "hide"} id={`${name}-toaster`}>{toasterMessage}</div>
+  );
+}
+
+const GAME_OVER_MESSAGES = {
+  1: ['u "won", Chester McCheaterface'],
+  2: ["I see you playa"],
+  3: ["U almost don't suck"],
+  5: ["rly?"],
+  4: ["U estúpido"],
+  6: ["Straight badussy"],
+  loser: ["Soy Boy Loser"],
+}
+
+export const Gameboard = () => {
+  const { board } = useGameState();
+
+  return (
+      <div id="board-container">
+        <div id="board">
+          {board.rows.map((row,i) => {
+              return (
+                  <div key={`row-${i}`} data-state={row.state} data-letters={row.letters} className="row" id={`row-${i}`}>
+                      {row.tiles.map((tile, s) => {
+                          return (
+                              <div key={`${tile.number}-${i}`} className={`tile`} data-state={tile.state} data-animation={tile.animation} id={`round-${i}-spot-${s}`} data-letter={tile.letter}>
+                                  {tile.letter || ""}
+                              </div>
+                          );
+                      })}
+                  </div>
+              );
+          })}
+        </div>
+      </div>
+  );
+};
+
+export const Keyboard = ({ handleUserEvent }) => {
+  const { keyboard, status } = useGameState();
+  const keyboardRows = Object.values(keyboard)
+    .reduce((sorted, letter) => {
+      if (sorted[letter.row]) {
+          sorted[letter.row].push(letter);
+      } else {
+          sorted[letter.row] = [letter];
+      }
+
+      return sorted;
+    }, {});
+
+  return (
+    <div id="keyboard">
+      {Object.values(keyboardRows)
+        .map((row, i) => {
+          return (
+            <div className="keyboard-row" key={`keyboard-row-${i}`}>
+              {row.map(({ letter, state, animation}, l) => (
+                  <button
+                    key={`${letter}-key`}
+                    data-key={letter}
+                    data-state={state}
+                    data-animation={animation}
+                    onClick={handleUserEvent}
+                    disabled={status === 'ENDED' ? true : false}
+                  >
+                    {letter === 'Backspace' ? 'del' : letter}
+                  </button>
+              ))}
+            </div>
+          );
+      })}
     </div>
-  )
+  );
 };
 
 export const getLetterFrequencies = (word) => {
-    const letterFrequencies = word
-        .split("")
-        .reduce((prev, curr) => {
-            if (prev[curr]) {
-                prev[curr] += 1;
-            } else {
-                prev[curr] = 1;
-            }
+  return word
+    .split("")
+    .reduce((prev, curr) => {
+      if (prev[curr]) {
+          prev[curr] += 1;
+      } else {
+          prev[curr] = 1;
+      }
 
-            return prev;
-        }, {});
+      return prev;
+    }, {});
+}
 
-    return letterFrequencies;
+const GameRecap = () => {
+  const {currentRound, modalOpen, winStatus} = useGameState();
+  console.log('modalOpen', modalOpen);
+  const dispatch = useGameDispatch();
+  const attempts = currentRound + 1;
+
+  const closeModal = (e) => {
+    console.log(e);
+    console.log('dispatching close modal')
+    dispatch({ type: 'UPDATE_MODAL_STATE', payload: false });
+    return;
+  }
+
+  return (
+    <div className={`game-modal ${modalOpen ? 'open' : 'closing hidden'}`}>
+      <div className="overlay"></div>
+      <div className="content">
+        <div className="close-icon icon" onClick={closeModal}>X</div>
+        <div className="container">
+          <h1>Statistics</h1>
+          <div id="guess-distribution">
+            <div className="graph-container">
+              <div className="guess">1</div>
+              <div className="graph">
+                <div className="graph-bar" style={{ width: '7%', backgroundColor: (attempts === 1) ? 'green' : 'gray' }}>
+                  <div className="num-guesses">{(attempts === 1) ? 1 : 0}</div>
+                </div>
+              </div>
+            </div>
+            <div className="graph-container">
+              <div className="guess">2</div>
+              <div className="graph">
+                <div className="graph-bar" style={{ width: '7%', backgroundColor: (attempts === 2) ? 'green' : 'gray' }}>
+                  <div className="num-guesses">{(attempts === 2) ? 1 : 0}</div>
+                </div>
+              </div>
+            </div>
+            <div className="graph-container">
+              <div className="guess">3</div>
+              <div className="graph">
+                <div className="graph-bar" style={{ width: '7%', backgroundColor: (attempts === 3) ? 'green' : 'gray' }}>
+                  <div className="num-guesses">{(attempts === 3) ? 1 : 0}</div>
+                </div>
+              </div>
+            </div>
+            <div className="graph-container">
+              <div className="guess">4</div>
+              <div className="graph">
+                <div className="graph-bar" style={{ width: '7%', backgroundColor: (attempts === 4) ? 'green' : 'gray' }}>
+                  <div className="num-guesses">{(attempts === 4) ? 1 : 0}</div>
+                </div>
+              </div>
+            </div>
+            <div className="graph-container">
+              <div className="guess">5</div>
+              <div className="graph">
+                <div className="graph-bar" style={{ width: '7%', backgroundColor: (attempts === 5) ? 'green' : 'gray' }}>
+                  <div className="num-guesses">{(attempts === 5) ? 1 : 0}</div>
+                </div>
+              </div>
+            </div>
+            <div className="graph-container">
+              <div className="guess">6</div>
+              <div className="graph">
+                <div className="graph-bar" style={{ width: '7%', backgroundColor: (attempts === 6) ? 'green' : 'gray' }}>
+                  <div className="num-guesses">{(attempts === 6) ? 1 : 0}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="footer">
+            <div className="share"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 const Game = () => {
-    const {
-        status,
-        rounds,
-        answer,
-        currentRound,
-        letterColors,
-        previousGuess,
-    } = useGameState();
-    console.log(useGameDispatch);
+  const {
+    modalOpen,
+    board,
+    answer,
+    currentRound,
+    gameRounds,
+    keyboard,
+    toasterMessage,
+    toasterDuration,
+  } = useGameState();
+  const dispatch = useGameDispatch();
+  const initialKeyboardEvaluation = {
+    0: { letter: "", state: "", animation: "" },
+    1: { letter: "", state: "", animation: "" },
+    2: { letter: "", state: "", animation: "" },
+    3: { letter: "", state: "", animation: "" },
+    4: { letter: "", state: "", animation: "" },
+  };
+  const initialTileEvaluation = { 0: "tbd", 1: "tbd", 2: "tbd", 3: "tbd", 4: "tbd" };
+  let tileEvaluation = initialTileEvaluation;
+  let keyboardEvaluation = initialKeyboardEvaluation;
+  let isGameboardUpdating = false;
 
-    const { guess } = rounds[currentRound];
+  function setTileEvaluation(value) {
+    tileEvaluation = value;
+  }
+
+  function evaluateKeyboard() {
+    const row = board.rows[currentRound];
+
+    row.letters.split("").forEach((letter, i) => {
+      keyboardEvaluation[i] = {
+        ...keyboardEvaluation[i],
+        letter,
+      }
+      return;
+    });
     
-    const dispatch = useGameDispatch();
+    const keyboardKeyDelta = Object.values(keyboardEvaluation)
+    const keysToUpdate = keyboardKeyDelta.reduce((keyMap, evaluation, i) => {
+    const key = evaluation.letter;
+      keyMap[key] = { ...keyboard[key], state: getLetterState(keyboard[key], tileEvaluation[i]) };
 
-    const updateGameboard = () => {
-        return;
+      return keyMap;
+    }, {});
+
+
+    keyboardEvaluation = keysToUpdate;
+
+  }
+
+  const updateGameboard = async () => {
+    console.log('awaiting animating row');
+    await animateRow(250, 5);
+
+    console.log("animatingRow complete");
+    console.log("updatingKeybomrd");
+    updateKeyboard();
+    console.log("updatingKeybomrd complete");
+  };
+
+  async function animateRow(delay, repetitions) {
+    let x = 0;
+    isGameboardUpdating = true;
+    console.log("tileEvaluation inside animate Row", tileEvaluation);
+    const intervalID = window.setInterval(() => {
+      console.log('updating tile in slot ', x);
+      console.log("tileEvaluation inside interval", tileEvaluation);
+      dispatch({
+        type: "UPDATE_TILE_STATE",
+        payload: {
+          number: x,
+          state: tileEvaluation[x],
+          animation: 'flip-in',
+        },
+      });
+
+      if (++x === repetitions) {
+        const [isOver, endState] = isGameOver(tileEvaluation);
+        if (isOver) {
+          endGame(endState);
+        } else {
+          updateGame()
+        }
+
+        window.clearInterval(intervalID);
+      }
+    }, delay);
+  }
+
+  function isGameOver(tileEvaluation) {
+    const isWon = Object.values(tileEvaluation).every(tileState => tileState === 'correct');
+    if (isWon) {
+      return [true, 'WINNER'];
     }
 
-    const updateKeyboard = () => {
-        return;
-    };
-
-    const checkGreen = () => {
-        for (let i = 0; i < answer.length; i++) {
-            if (rounds[currentRound].guess[i] === answer[i]) {
-                dispatch({ type: "ADD_LETTER_TO_COLOR_LIST", payload: { color: 'green', letter: rounds[currentRound].guess[i] }});
-                dispatch({ type: "ADD_LETTER_BY_COLOR", payload: { color: 'green', data: { letter: rounds[currentRound].guess[i], spot: i }}});
-                dispatch({ type: "ADD_LETTER_BY_SPOT", payload: { spot: i, data: { letter: rounds[currentRound].guess[i], color: 'green' }}});
-            }
-        }
+    if (currentRound === gameRounds - 1) {
+      return [true, 'LOSER'];
+    } else {
+      return [false];
     }
-    
-    const checkYellow = () => {
-        const guess = rounds[currentRound].guess;
-        const answerLetterFrequencies = getLetterFrequencies(answer);
-        const greenLetterFrequencies = getLetterFrequencies(rounds[currentRound].score.byColor.green.map(r => r.letter).join(""));
-    
-        for (let i = 0; i < answer.length; i++) {
-            for (let j = 0; j < answer.length; j++) {
-                const letterGreenCount = greenLetterFrequencies[guess[i]] || 0;
-    
-                if (
-                    rounds[currentRound].score.byColor.green.length
-                    && rounds[currentRound].score.byColor.green.map(r => r.spot).includes(i)
-                ) {
-                    continue;
-                } else if (
-                    (guess[i] === answer[j])
-                    && (answerLetterFrequencies[guess[i]] - letterGreenCount > 0)
-                ) {
-                    dispatch({ type: "ADD_LETTER_TO_COLOR_LIST", payload: { color: 'yellow', letter: rounds[currentRound].guess[i] }});
-                    dispatch({ type: "ADD_LETTER_BY_COLOR", payload: { color: 'yellow', data: { letter: rounds[currentRound].guess[i], spot: i }}});
-                    dispatch({ type: "ADD_LETTER_BY_SPOT", payload: { spot: i, data: { letter: rounds[currentRound].guess[i], color: 'yellow' }}});
-    
-                    answerLetterFrequencies[guess[i]] -= 1;
-                    break;
-                }
-            }
-        }
-    };
-    
-    const checkGrey = () => {
-        const yellows = rounds[currentRound].score.byColor.yellow
-            .map(letterData => letterData.spot);
-        const greens = rounds[currentRound].score.byColor.green
-            .map(letterData => letterData.spot);
-        const greySpots = [0,1,2,3,4]
-            .filter(i => !yellows.includes(i))
-            .filter(i => !greens.includes(i));
-    
-        greySpots.forEach(i => {
-            dispatch({ type: "ADD_LETTER_TO_COLOR_LIST", payload: { color: 'grey', letter: rounds[currentRound].guess[i] }});
-            dispatch({ type: "ADD_LETTER_BY_COLOR", payload: { color: 'grey', data: { letter: rounds[currentRound].guess[i], spot: i }}});
-            dispatch({ type: "ADD_LETTER_BY_SPOT", payload: { spot: i, data: { letter: rounds[currentRound].guess[i], color: 'grey' }}});
-        })
-    };
+  }
 
-    const updateYellows = () => {
-        if (rounds[currentRound].score.byColor.yellow.length) {
-            return;
-        }
-        rounds[currentRound].score.byColor.yellow.forEach(spot => {
-            if (letterColors[spot.letter] === 'green') {
-                return;
-            }
-            dispatch({ type: 'ADD_COLOR_TO_LETTER', payload: { letter: spot.letter, color: 'yellow'}})
-            // letterColors[spot.letter] = 'yellow';
-    
+  function endGame(winStatus) {
+     // Add other statistics including past games here when available from local storage
+     let message = getGameOverMessage(winStatus === 'WINNER', currentRound + 1);
+
+     dispatch({ type: "ADD_TOASTER_STATE", payload: { message: message, duration: 10001 }});
+     dispatch({ type: "UPDATE_MODAL_STATE", payload: true });
+  }
+
+  // Return random message/insult in future.
+  function getGameOverMessage(isWinner, attempts) {
+    return isWinner ? GAME_OVER_MESSAGES[attempts] : GAME_OVER_MESSAGES['loser'].first();
+
+  }
+
+  function updateKeyboard() {
+
+    // const updatedLetters = Object.values(keyboardEvaluation).reduce((letters, key) => {
+    //   if (letters[key.letter]) {
+    //     letters[key.letter].push(key.state);
+    //   } else {
+    //     letters[key.letter] = [key.state];
+    //   }
+
+    //   return letters;
+    // }, {});
+
+
+
+    // const stuff = Object.keys(updatedLetters).forEach(letter => {
+    //   if (updatedLetters[letter].state && updatedLetters[letter].state.length > 1) {
+    //     if (updatedLetters[letter].state.includes('correct')) {
+    //       updatedLetters[letter].state = "correct";
+    //     } else if (updatedLetters[letter].includes('present')) {
+    //       updatedLetters[letter].state = "present";
+    //     }
+
+    //     updatedLetters[letter].state = "absent";
+    //   }
+
+    //   updatedLetters[letter].state = updatedLetters[letter].state.first();
+    // });
+
+
+    dispatch({ type: 'UPDATE_KEYBOARD', payload: keyboardEvaluation});
+  }
+
+  const checkGreen = () => {
+    for (let i = 0; i < answer.length; i++) {
+      if (board.rows[currentRound].letters[i] === answer[i]) {
+        setTileEvaluation({
+          ...tileEvaluation,
+          [i]: 'correct',
         });
+      }
     }
-    
-    const updateGreys = () => {
-        if (!rounds[currentRound].score.byColor.grey.length === 0) {
-            return;
-        }
-    
-        rounds[currentRound].score.byColor.grey.forEach(spot => {
-            if (letterColors[spot.letter] === 'green' || letterColors[spot.letter] === 'yellow') {
-                return;
-            }
+  };
+  
+  const evaluateRemainingTiles = () => {
+    const rowTiles = board.rows[currentRound].tiles;
+    const greenTileNumbers = Object.entries(tileEvaluation)
+            .filter(([number, state]) => (state === "correct"))
+            .map(([number]) => parseInt(number));
+    const answerLetters = answer.split("").filter((l, i) => !greenTileNumbers.includes(i));
+    const remainingTiles = rowTiles
+      .filter(t => !greenTileNumbers.includes(t.number));
+    const remainingLetters = remainingTiles
+      && remainingTiles.length
+        ? remainingTiles.map(t => t.letter)
+        : [];
+    // const remainingLetterFrequencies = getLetterFrequencies(remainingLetters.join(""));
+    // const answerLetterFrequencies = getLetterFrequencies(answer);
+    // const remainingAnswerLetterFrequencies = getLetterFrequencies(answerLetters.join(""));
+    // Object.keys(remainingLetterFrequencies).filter((letter, i) => answerLetterFrequencies[letter] && answerLetterFrequencies[letter] - remainingLetterFrequencies > 0);
 
-            dispatch({ type: 'ADD_COLOR_TO_LETTER', payload: { letter: spot.letter, color: 'grey'}})
-            // game.letterColors[spot.letter] = 'grey';
+    remainingTiles.forEach((t, i) => {
+      const index = answerLetters
+        .findIndex(l => l === t.letter);
+
+      if (index !== -1) {
+        remainingLetters.splice(index, 1);
+        setTileEvaluation({
+          ...tileEvaluation,
+          [t.number]: 'present',
         });
-    }
-    
-    const updateGreens = () => {
-        if (rounds[currentRound].score.byColor.green.length === 0) {
-            return;
-        }
-
-        rounds[currentRound].score.byColor.green.forEach((spot, i) => {
-            dispatch({ type: 'ADD_COLOR_TO_LETTER', payload: { letter: spot.letter, color: 'green'}});
-            //game.letterColors[spot.letter] = 'green';
+        // dispatch({ type: "UPDATE_TILE_EVALUATION", payload: { number: t.number, state: 'present' }});
+        // setTileEvaluation({
+        //   ...tileEvaluation,
+        //   [t.number]: 'present',
+        // });
+        // remainingLetterFrequencies[t.letter] -= 1;
+      } else {
+        setTileEvaluation({
+          ...tileEvaluation,
+          [t.number]: 'absent',
         });
+      }
+    });
+
+  };
+  
+  // const checkGrey = () => {
+  //     const row = board.rows[currentRound];
+  //     const unevaluated = Object.entries(tileEvaluation)
+  //           .filter(([number, state]) => (state !== "correct" && state !== "present"))
+  //           .map(([number]) => parseInt(number));
+  //     const greyTiles = row.tiles.filter((t, i) => unevaluated.includes(t.number))
+
+
+  //     greyTiles
+  //       .forEach((t) => {
+  //         setTileEvaluation({
+  //           ...tileEvaluation,
+  //           [t.number]: 'absent',
+  //         });
+  //         // dispatch({
+  //         //   type: 'UPDATE_TILE_EVALUATION',
+  //         //   payload: { state: 'absent', number: t.number },
+  //         // });
+  //       });
+  // };
+
+  // const updateYellows = () => {
+  //     if (board.rows[currentRound].score.byColor.yellow.length) {
+  //         return;
+  //     }
+  //     board.rows[currentRound].score.byColor.yellow.forEach(spot => {
+  //         if (letterColors[spot.letter] === 'green') {
+  //             return;
+  //         }
+  //         dispatch({ type: 'UPDATE_TILE_EVALUATION', payload: { number: spot.number, number: 'yellow'}})
+  //         // letterColors[spot.letter] = 'yellow';
+  
+  //     });
+  // }
+  
+  // const updateGreys = () => {
+  //     if (!board.rows[currentRound].score.byColor.grey.length === 0) {
+  //         return;
+  //     }
+  
+  //     board.rows[currentRound].score.byColor.grey.forEach(spot => {
+  //         if (letterColors[spot.letter] === 'green' || letterColors[spot.letter] === 'yellow') {
+  //             return;
+  //         }
+
+  //         dispatch({ type: 'ADD_COLOR_TO_LETTER', payload: { letter: spot.letter, color: 'grey'}})
+  //         // game.letterColors[spot.letter] = 'grey';
+  //     });
+  // }
+  
+  // const updateGreens = () => {
+  //     if (board.rows[currentRound].score.byColor.green.length === 0) {
+  //         return;
+  //     }
+
+  //     board.rows[currentRound].score.byColor.green.forEach((spot, i) => {
+  //         dispatch({ type: 'ADD_COLOR_TO_LETTER', payload: { letter: spot.letter, color: 'green'}});
+  //         //game.letterColors[spot.letter] = 'green';
+  //     });
+  // }
+
+  // const updateKeyboard = () => {
+  //   const row = board.rows[currentRound];
+  //   row.tileEvaluation.forEach((evalu, i) => {
+  //     const current = keyboard.letters[row.tiles[i].letter]
+  //     keyboard.letters[row.tiles[i].letter] = getLetterState(current, evalu);
+  //     keyboard.letters[current.letter] = evalu;
+  //   });
+    // const keys = keyboard.flat();
+    // keys.tiles.foreach(t => {
+    //   return t;
+    // });
+    // keyboard.rows.map(r => {
+    //   r.map()
+    // })
+  //   return;
+  // }
+  
+
+  // const formatRow = (round) => {
+  //     return round.score.bySpot;
+  // };
+
+  // const updateBoard = (currentRound, rounds) => {
+  // };
+
+  const checkGuess = async () => {
+    checkGreen();
+    evaluateRemainingTiles();
+    evaluateKeyboard()
+    await updateGameboard();
+
+    return;
+  };
+
+  function updateGame() {
+    console.log('updatingn game');
+    dispatch({ type: "UPDATE_GAME" });
+    tileEvaluation = initialTileEvaluation;
+    keyboardEvaluation = initialKeyboardEvaluation;
+  }
+
+  const processGuess = (guess) => {
+    const invalid = validateUserGuess(guess);
+
+
+    if (invalid) {
+      console.log(invalid);
+      dispatch({ type: "ADD_ROW_STATE", payload: "invalid" });
+      dispatch({  type: "ADD_TOASTER_STATE", payload: { message: invalid, duration: 5000 }});
+      setTimeout(() => dispatch({ type: "ADD_ROW_STATE", payload: "" }), 250);
+      return;
     }
 
-    const updateLetterColors = () => {
-        updateGreens();
-        updateYellows();
-        updateGreys();
-    }
-    
+    checkGuess(guess);
+  };
 
-    const formatRow = (round) => {
-        return round.score.bySpot;
-    };
+  function handleUserSubmit () {
+    const guess = board.rows[currentRound].letters;
 
-    const updateBoard = (currentRound, rounds) => {
-        for (let r = 0; r <= currentRound; r++) {
-            dispatch({ type: "ADD_BOARD_ROW", payload: formatRow(rounds[r]) })
-        }
-    };
+    processGuess(guess);
+  }
 
-    const checkGuess = () => {
-        checkGreen();
-        checkYellow();
-        checkGrey();
-        updateLetterColors();
-        updateGameboard();
-        updateKeyboard();
-    };
+  const onKeyPress = (e) => {
+    const key = e.key;
 
-    const updateGame = (guess) => {
-        dispatch({ type: "UPDATE_PREVIOUS_GUESS", payload: guess });
+
+    if (!Object.keys(initialState.keyboard).includes(key)) {
+      return;
     }
 
-    const processGuess = (guess) => {
-        // Validate guess
-        checkGuess(guess);
-        updateGame(guess);
+    if (PREVENTED_KEYS.some(state => !!e[state])) {
+      return;
     }
 
-    const handleSubmitGuess = async (e) => {
-        console.log(e);
-        dispatch({ type: 'ADD_USER_GUESS', payload: guess.toLowerCase() });
-        processGuess(guess);
-        updateBoard();
-    };
+    if (key === 'Enter') {
+      handleUserSubmit();
+      return;
+    } else if (key === 'Backspace') {
+      dispatch({ type: 'REMOVE_LETTER_FROM_TILE'});
+      return;
+    } else {
+      dispatch({ type: 'ADD_LETTER_TO_TILE', payload: { letter: key }});
+      return;
+    }
+  };
 
-    const handleKeyPress = (e) => {
-        console.log(e);
-        return;
+  useEffect(() => {
+    window.addEventListener("keydown", onKeyPress);
+
+    // Remove event listeners on cleanup. See useEffect docs for more info.
+    return () => {
+      window.removeEventListener("keydown", onKeyPress);
     };
+  });
+
+  function handleUserEvent(e) {
+    e.preventDefault();
+    const key = e.target.dataset.key;
+
+
+    if (!Object.keys(initialState.keyboard).includes(key)) {
+      return;
+    }
+
+    if (key === 'Enter') {
+      handleUserSubmit();
+      return;
+    } else if (key === 'Backspace') {
+      dispatch({ type: 'REMOVE_LETTER_FROM_TILE' });
+      return;
+    } else {
+      dispatch({ type: 'ADD_LETTER_TO_TILE', payload: { letter: key }});
+      return;
+    }
+  }
 
     // useEffect(() => {
     //     // if status is new
@@ -247,7 +681,7 @@ const Game = () => {
 
     // }, [currentRound, dispatch, status]);
 
-    useEffect(() => {
+    // useEffect(() => {
         // const isGameOver = () => {
         //     if (currentRound === answer.length - 1) {
         //         return true;
@@ -273,23 +707,25 @@ const Game = () => {
         // }
 
         // dispatch({ type: 'GAME_ENDED' });
-    })
+    // })
 
-    return (
-        <div className="game">
-            I am in the game component
-                    {/* <GameRecap isOpen={true} /> */}
-                    {/* <RestartGameButton /> */}
-            <Gameboard />
-            {/* <Keyboard handleKeyPress={handleKeyPress} handleSubmit={handleSubmitGuess} /> */}
-        </div>
-    );
+  return (
+    <div id="game">
+      <GameRecap isOpen={modalOpen} />
+      {/* <RestartGameButton /> */}
+      <div className="toaster" id="game-toaster">
+        <Toaster name="game" message={toasterMessage} duration={toasterDuration}/>
+      </div>
+      <Gameboard />
+      <Keyboard handleUserEvent={handleUserEvent} />
+    </div>
+  );
 };
 // import Wordleaux from "../Wordleaux";
 
 const Header = () => {
   return (
-    <header className='header'>
+    <header className='App-header'>
       <p>React Game</p>
       <p>Score: (TBD)</p>
       <button>Play</button>
@@ -297,37 +733,65 @@ const Header = () => {
   );
 };
 
-const GameOverBanner = () => {
-  const { status } = useGameState();
-  console.log("status in game over", status);
+function validateUserGuess(guess) {
+  let validationMessage = "U done messed up";
 
-  return status === "ENDED" ? (
-    <div className='game-over'>
-      <p>GAME OVER</p>
-    </div>
-  ) : null;
-};
+  // @TODO update the valid length to come from state.
+  if (!isCorrectLength(guess.length, 5)) {
+    validationMessage = `5 letters, numbnuts`;
+
+    return validationMessage;
+  }
+
+  // In the accepted words list
+  if (!isValidWord(guess)) {
+    validationMessage = 'Use real words dumbdumb';
+
+    return validationMessage;
+  }
+
+  return false;
+}
+
+function isCorrectLength(guessLength, validLength) {
+  if (guessLength !== validLength) {
+    return false;
+  }
+
+  return true;
+}
+
+function getLetterState(keyboardLetterData, newEvaluation) {
+
+  if (newEvaluation === 'correct') {
+    return newEvaluation;
+  }
+  
+  if (newEvaluation === 'present') {
+    return (keyboardLetterData.state !== 'correct') ? newEvaluation : 'correct';
+  }
+
+
+  return (keyboardLetterData.state === 'correct' || keyboardLetterData.state === 'present')
+    ? keyboardLetterData.state
+    : newEvaluation;
+}
+
+function isValidWord(guess) {
+  return GAME_WORDS.VALID.includes(guess);
+}
+
 
 const Wordleaux = () => {
-  const state = useGameState();
-  console.log("state in wordleaux", state);
-  return (
-      <div className="game-container">
-          <Game />
-      </div>
-  );
-}
+  return (<Game />);
+};
 
 function App() {
   return (
     <GameContext initialState={initialState} reducer={reducer}>
       <Header />
       <main className='main'>
-        <div className='board'>
-          <GameOverBanner />
-          <p>Hello World</p>
           <Wordleaux />
-        </div>
       </main>
     </GameContext>
   );

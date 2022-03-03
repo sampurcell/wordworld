@@ -273,7 +273,7 @@ export const Gameboard = () => {
                     <div className="guess-row" id={`row-${i}`}>
                         {Object.values(row).map(({ letter, color, s }) => {
                             return (
-                                <div className={`spot spot-${color}`} id={`round-${i}-spot-${s}`} data-letter="letter">
+                                <div className={`tile tile-${color}`} data-evaluation="present" data-state="" id={`round-${i}-tile-${s}`} data-letter="letter">
                                     {letter}
                                 </div>
                             );
@@ -292,7 +292,7 @@ export const Gameboard = () => {
             rows.push(
                 <div className="guess-row" id={`row-${i}`}>
                     {Array.from(5).map(s => {
-                        return (<div className="spot spot-empty" id={`round-${i}-spot-${s}`}></div>);
+                        return (<div className="tile" data-evaluation data-state id={`round-${i}-spot-${s}`}></div>);
                     })}
                 </div>
             );
@@ -375,3 +375,6 @@ const Wordleaux = () => {
 }
 
 export default Wordleaux;
+
+
+<div id="board" style="width: 350px; height: 420px;"><game-row length="5" letters="clock"></game-row><game-row letters="" length="5"></game-row><game-row letters="" length="5"></game-row><game-row letters="" length="5"></game-row><game-row letters="" length="5"></game-row><game-row letters="" length="5"></game-row></div>
