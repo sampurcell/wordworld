@@ -216,15 +216,17 @@ export const getLetterFrequencies = (word) => {
 }
 
 const GameRecap = () => {
-  const {currentRound, modalOpen, winStatus} = useGameState();
-  console.log('modalOpen', modalOpen);
+  const {
+    currentRound,
+    modalOpen,
+    // winStatus,
+  } = useGameState();
   const dispatch = useGameDispatch();
   const attempts = currentRound + 1;
 
   const closeModal = (e) => {
-    console.log(e);
-    console.log('dispatching close modal')
     dispatch({ type: 'UPDATE_MODAL_STATE', payload: false });
+
     return;
   }
 
@@ -239,48 +241,96 @@ const GameRecap = () => {
             <div className="graph-container">
               <div className="guess">1</div>
               <div className="graph">
-                <div className="graph-bar" style={{ width: '7%', backgroundColor: (attempts === 1) ? 'green' : 'gray' }}>
-                  <div className="num-guesses">{(attempts === 1) ? 1 : 0}</div>
+                <div
+                  className="graph-bar"
+                  style={{
+                    width: '7%',
+                    backgroundColor: (attempts === 1) ? 'green' : 'gray'
+                  }}
+                >
+                  <div className="num-guesses">
+                    {(attempts === 1) ? 1 : 0}
+                  </div>
                 </div>
               </div>
             </div>
             <div className="graph-container">
               <div className="guess">2</div>
               <div className="graph">
-                <div className="graph-bar" style={{ width: '7%', backgroundColor: (attempts === 2) ? 'green' : 'gray' }}>
-                  <div className="num-guesses">{(attempts === 2) ? 1 : 0}</div>
+              <div
+                  className="graph-bar"
+                  style={{
+                    width: '7%',
+                    backgroundColor: (attempts === 2) ? 'green' : 'gray'
+                  }}
+                >
+                  <div className="num-guesses">
+                    {(attempts === 2) ? 1 : 0}
+                  </div>
                 </div>
               </div>
             </div>
             <div className="graph-container">
               <div className="guess">3</div>
               <div className="graph">
-                <div className="graph-bar" style={{ width: '7%', backgroundColor: (attempts === 3) ? 'green' : 'gray' }}>
-                  <div className="num-guesses">{(attempts === 3) ? 1 : 0}</div>
+                <div
+                  className="graph-bar"
+                  style={{
+                    width: '7%',
+                    backgroundColor: (attempts === 3) ? 'green' : 'gray'
+                  }}
+                >
+                  <div className="num-guesses">
+                    {(attempts === 3) ? 1 : 0}
+                  </div>
                 </div>
               </div>
             </div>
             <div className="graph-container">
               <div className="guess">4</div>
               <div className="graph">
-                <div className="graph-bar" style={{ width: '7%', backgroundColor: (attempts === 4) ? 'green' : 'gray' }}>
-                  <div className="num-guesses">{(attempts === 4) ? 1 : 0}</div>
+                <div
+                  className="graph-bar"
+                  style={{
+                    width: '7%',
+                    backgroundColor: (attempts ===41) ? 'green' : 'gray'
+                  }}
+                >
+                  <div className="num-guesses">
+                    {(attempts === 4) ? 1 : 0}
+                  </div>
                 </div>
               </div>
             </div>
             <div className="graph-container">
               <div className="guess">5</div>
               <div className="graph">
-                <div className="graph-bar" style={{ width: '7%', backgroundColor: (attempts === 5) ? 'green' : 'gray' }}>
-                  <div className="num-guesses">{(attempts === 5) ? 1 : 0}</div>
+                <div
+                  className="graph-bar"
+                  style={{
+                    width: '7%',
+                    backgroundColor: (attempts === 5) ? 'green' : 'gray'
+                  }}
+                >
+                  <div className="num-guesses">
+                    {(attempts === 5) ? 1 : 0}
+                  </div>
                 </div>
               </div>
             </div>
             <div className="graph-container">
               <div className="guess">6</div>
               <div className="graph">
-                <div className="graph-bar" style={{ width: '7%', backgroundColor: (attempts === 6) ? 'green' : 'gray' }}>
-                  <div className="num-guesses">{(attempts === 6) ? 1 : 0}</div>
+                <div
+                  className="graph-bar"
+                  style={{
+                    width: '7%',
+                    backgroundColor: (attempts === 6) ? 'green' : 'gray'
+                  }}
+                >
+                  <div className="num-guesses">
+                    {(attempts === 6) ? 1 : 0}
+                  </div>
                 </div>
               </div>
             </div>
@@ -313,10 +363,15 @@ const Game = () => {
     3: { letter: "", state: "", animation: "" },
     4: { letter: "", state: "", animation: "" },
   };
-  const initialTileEvaluation = { 0: "tbd", 1: "tbd", 2: "tbd", 3: "tbd", 4: "tbd" };
+  const initialTileEvaluation = {
+    0: "tbd",
+    1: "tbd",
+    2: "tbd",
+    3: "tbd",
+    4: "tbd",
+  };
   let tileEvaluation = initialTileEvaluation;
   let keyboardEvaluation = initialKeyboardEvaluation;
-  let isGameboardUpdating = false;
 
   function setTileEvaluation(value) {
     tileEvaluation = value;
@@ -325,44 +380,38 @@ const Game = () => {
   function evaluateKeyboard() {
     const row = board.rows[currentRound];
 
-    row.letters.split("").forEach((letter, i) => {
+    row.letters.split("").forEach((letter,
+       i) => {
       keyboardEvaluation[i] = {
         ...keyboardEvaluation[i],
         letter,
       }
+
       return;
     });
     
     const keyboardKeyDelta = Object.values(keyboardEvaluation)
     const keysToUpdate = keyboardKeyDelta.reduce((keyMap, evaluation, i) => {
     const key = evaluation.letter;
-      keyMap[key] = { ...keyboard[key], state: getLetterState(keyboard[key], tileEvaluation[i]) };
+      keyMap[key] = {
+        ...keyboard[key],
+        state: getLetterState(keyboard[key], tileEvaluation[i]),
+      };
 
       return keyMap;
     }, {});
 
-
     keyboardEvaluation = keysToUpdate;
-
   }
 
   const updateGameboard = async () => {
-    console.log('awaiting animating row');
     await animateRow(250, 5);
-
-    console.log("animatingRow complete");
-    console.log("updatingKeybomrd");
     updateKeyboard();
-    console.log("updatingKeybomrd complete");
   };
 
   async function animateRow(delay, repetitions) {
     let x = 0;
-    isGameboardUpdating = true;
-    console.log("tileEvaluation inside animate Row", tileEvaluation);
     const intervalID = window.setInterval(() => {
-      console.log('updating tile in slot ', x);
-      console.log("tileEvaluation inside interval", tileEvaluation);
       dispatch({
         type: "UPDATE_TILE_STATE",
         payload: {
@@ -386,7 +435,9 @@ const Game = () => {
   }
 
   function isGameOver(tileEvaluation) {
-    const isWon = Object.values(tileEvaluation).every(tileState => tileState === 'correct');
+    const isWon = Object.values(tileEvaluation)
+      .every(tileState => tileState === 'correct');
+
     if (isWon) {
       return [true, 'WINNER'];
     }
@@ -408,39 +459,13 @@ const Game = () => {
 
   // Return random message/insult in future.
   function getGameOverMessage(isWinner, attempts) {
-    return isWinner ? GAME_OVER_MESSAGES[attempts] : GAME_OVER_MESSAGES['loser'].first();
+    return isWinner
+      ? GAME_OVER_MESSAGES[attempts]
+      : GAME_OVER_MESSAGES['loser'].first();
 
   }
 
   function updateKeyboard() {
-
-    // const updatedLetters = Object.values(keyboardEvaluation).reduce((letters, key) => {
-    //   if (letters[key.letter]) {
-    //     letters[key.letter].push(key.state);
-    //   } else {
-    //     letters[key.letter] = [key.state];
-    //   }
-
-    //   return letters;
-    // }, {});
-
-
-
-    // const stuff = Object.keys(updatedLetters).forEach(letter => {
-    //   if (updatedLetters[letter].state && updatedLetters[letter].state.length > 1) {
-    //     if (updatedLetters[letter].state.includes('correct')) {
-    //       updatedLetters[letter].state = "correct";
-    //     } else if (updatedLetters[letter].includes('present')) {
-    //       updatedLetters[letter].state = "present";
-    //     }
-
-    //     updatedLetters[letter].state = "absent";
-    //   }
-
-    //   updatedLetters[letter].state = updatedLetters[letter].state.first();
-    // });
-
-
     dispatch({ type: 'UPDATE_KEYBOARD', payload: keyboardEvaluation});
   }
 
@@ -467,10 +492,6 @@ const Game = () => {
       && remainingTiles.length
         ? remainingTiles.map(t => t.letter)
         : [];
-    // const remainingLetterFrequencies = getLetterFrequencies(remainingLetters.join(""));
-    // const answerLetterFrequencies = getLetterFrequencies(answer);
-    // const remainingAnswerLetterFrequencies = getLetterFrequencies(answerLetters.join(""));
-    // Object.keys(remainingLetterFrequencies).filter((letter, i) => answerLetterFrequencies[letter] && answerLetterFrequencies[letter] - remainingLetterFrequencies > 0);
 
     remainingTiles.forEach((t, i) => {
       const index = answerLetters
@@ -482,12 +503,6 @@ const Game = () => {
           ...tileEvaluation,
           [t.number]: 'present',
         });
-        // dispatch({ type: "UPDATE_TILE_EVALUATION", payload: { number: t.number, state: 'present' }});
-        // setTileEvaluation({
-        //   ...tileEvaluation,
-        //   [t.number]: 'present',
-        // });
-        // remainingLetterFrequencies[t.letter] -= 1;
       } else {
         setTileEvaluation({
           ...tileEvaluation,
@@ -497,92 +512,6 @@ const Game = () => {
     });
 
   };
-  
-  // const checkGrey = () => {
-  //     const row = board.rows[currentRound];
-  //     const unevaluated = Object.entries(tileEvaluation)
-  //           .filter(([number, state]) => (state !== "correct" && state !== "present"))
-  //           .map(([number]) => parseInt(number));
-  //     const greyTiles = row.tiles.filter((t, i) => unevaluated.includes(t.number))
-
-
-  //     greyTiles
-  //       .forEach((t) => {
-  //         setTileEvaluation({
-  //           ...tileEvaluation,
-  //           [t.number]: 'absent',
-  //         });
-  //         // dispatch({
-  //         //   type: 'UPDATE_TILE_EVALUATION',
-  //         //   payload: { state: 'absent', number: t.number },
-  //         // });
-  //       });
-  // };
-
-  // const updateYellows = () => {
-  //     if (board.rows[currentRound].score.byColor.yellow.length) {
-  //         return;
-  //     }
-  //     board.rows[currentRound].score.byColor.yellow.forEach(spot => {
-  //         if (letterColors[spot.letter] === 'green') {
-  //             return;
-  //         }
-  //         dispatch({ type: 'UPDATE_TILE_EVALUATION', payload: { number: spot.number, number: 'yellow'}})
-  //         // letterColors[spot.letter] = 'yellow';
-  
-  //     });
-  // }
-  
-  // const updateGreys = () => {
-  //     if (!board.rows[currentRound].score.byColor.grey.length === 0) {
-  //         return;
-  //     }
-  
-  //     board.rows[currentRound].score.byColor.grey.forEach(spot => {
-  //         if (letterColors[spot.letter] === 'green' || letterColors[spot.letter] === 'yellow') {
-  //             return;
-  //         }
-
-  //         dispatch({ type: 'ADD_COLOR_TO_LETTER', payload: { letter: spot.letter, color: 'grey'}})
-  //         // game.letterColors[spot.letter] = 'grey';
-  //     });
-  // }
-  
-  // const updateGreens = () => {
-  //     if (board.rows[currentRound].score.byColor.green.length === 0) {
-  //         return;
-  //     }
-
-  //     board.rows[currentRound].score.byColor.green.forEach((spot, i) => {
-  //         dispatch({ type: 'ADD_COLOR_TO_LETTER', payload: { letter: spot.letter, color: 'green'}});
-  //         //game.letterColors[spot.letter] = 'green';
-  //     });
-  // }
-
-  // const updateKeyboard = () => {
-  //   const row = board.rows[currentRound];
-  //   row.tileEvaluation.forEach((evalu, i) => {
-  //     const current = keyboard.letters[row.tiles[i].letter]
-  //     keyboard.letters[row.tiles[i].letter] = getLetterState(current, evalu);
-  //     keyboard.letters[current.letter] = evalu;
-  //   });
-    // const keys = keyboard.flat();
-    // keys.tiles.foreach(t => {
-    //   return t;
-    // });
-    // keyboard.rows.map(r => {
-    //   r.map()
-    // })
-  //   return;
-  // }
-  
-
-  // const formatRow = (round) => {
-  //     return round.score.bySpot;
-  // };
-
-  // const updateBoard = (currentRound, rounds) => {
-  // };
 
   const checkGuess = async () => {
     checkGreen();
@@ -594,8 +523,8 @@ const Game = () => {
   };
 
   function updateGame() {
-    console.log('updatingn game');
     dispatch({ type: "UPDATE_GAME" });
+
     tileEvaluation = initialTileEvaluation;
     keyboardEvaluation = initialKeyboardEvaluation;
   }
@@ -605,7 +534,6 @@ const Game = () => {
 
 
     if (invalid) {
-      console.log(invalid);
       dispatch({ type: "ADD_ROW_STATE", payload: "invalid" });
       dispatch({  type: "ADD_TOASTER_STATE", payload: { message: invalid, duration: 5000 }});
       setTimeout(() => dispatch({ type: "ADD_ROW_STATE", payload: "" }), 250);
@@ -623,7 +551,6 @@ const Game = () => {
 
   const onKeyPress = (e) => {
     const key = e.key;
-
 
     if (!Object.keys(initialState.keyboard).includes(key)) {
       return;
@@ -675,40 +602,6 @@ const Game = () => {
     }
   }
 
-    // useEffect(() => {
-    //     // if status is new
-    //     // send dispatch to set answer, set status to ON and round to 1
-
-    // }, [currentRound, dispatch, status]);
-
-    // useEffect(() => {
-        // const isGameOver = () => {
-        //     if (currentRound === answer.length - 1) {
-        //         return true;
-        //     }
-        
-        //     if (isGuessed(previousGuess)) {
-        //         return true;
-        //     }
-        
-        //     return false;
-        // }
-        
-        // const isGuessed = (guess) => {
-        //     return (guess && guess === answer);
-        // }
-
-        // if (status === 'NEW') {
-        //     dispatch({ type: 'RESTART' });
-        // }
-
-        // if (!isGameOver(isGuessed)) {
-        //     dispatch({ type: 'INCREMENT_ROUND' });
-        // }
-
-        // dispatch({ type: 'GAME_ENDED' });
-    // })
-
   return (
     <div id="game">
       <GameRecap isOpen={modalOpen} />
@@ -721,7 +614,6 @@ const Game = () => {
     </div>
   );
 };
-// import Wordleaux from "../Wordleaux";
 
 const Header = () => {
   return (
@@ -762,7 +654,6 @@ function isCorrectLength(guessLength, validLength) {
 }
 
 function getLetterState(keyboardLetterData, newEvaluation) {
-
   if (newEvaluation === 'correct') {
     return newEvaluation;
   }

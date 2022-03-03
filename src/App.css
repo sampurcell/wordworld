@@ -659,7 +659,6 @@ game-icon {
   }
 }
 
-
 .container {
   display: flex;
   flex-direction: column;
@@ -678,7 +677,7 @@ h1 {
 
 #statistics {
   display: flex;
-  margin-bottom: 
+  margin-bottom: 2rem;
 }
 
 .statistic-container {

@@ -1,4 +1,3 @@
-import { keyboard } from '@testing-library/user-event/dist/keyboard';
 import { GAME_WORDS } from './lists/words';
 
 const filterWords = (words) => {
@@ -19,7 +18,6 @@ export const getNewAnswer = () => {
     return word;
 };
 
-// Possible Status values: 'NEW' | 'ON' | 'ENDED'
 export const initialState = {
     gameRounds: 6,
     status: "NEW",
@@ -258,18 +256,9 @@ export const initialState = {
         "m": { letter: "m", state: "", row: 3 },
         "Backspace": { letter: "Backspace", state: "", row: 3 },
     },
-    // May not need these
-    colorLetters: {
-        green: [],
-        yellow: [],
-        grey: [],
-    },
 };
 
 export const reducer = (state, action) => {
-    // @TODO - remove these consoles and unused actions
-    //   console.log(`Action Type: ${action.type}`);
-    //   console.log(`payload:`, action.payload);
     switch (action.type) {
     case "START":
         return { ...initialState, status: "ON" };
@@ -569,8 +558,3 @@ function addRowState(row, action) {
         state: action.payload,
     };
 }
-// function getUpdatedKeyboardLetters(keyboard, updatedLetters) {
-//     return updatedLetters.reduce((keyboardMap, currentUpdatedLetter) => {
-//         return keyboardMap[currentUpdatedLetter] = { ...keyboard[currentUpdatedLetter], state = };
-//     }, {})
-// }

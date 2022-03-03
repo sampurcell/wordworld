@@ -4,7 +4,11 @@ import { Link } from 'react-router-dom';
 export default function Home() {
     return (
         <div className="games-container">
-            <Link to="wordleaux" ><button className="game-button">Play Wordleaux</button></Link>
+            <Link to="wordleaux">
+                <button className="game-button">
+                    Play Wordleaux
+                </button>
+            </Link>
         </div>
     );
 }
