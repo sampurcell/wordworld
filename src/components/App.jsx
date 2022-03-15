@@ -1,115 +1,11 @@
-import React, { useEffect, useState } from 'react';
-
-//   BrowserRouter,
-//   Routes,
-//   Route,
-//   Link,
-// } from 'react-router-dom';
-// // import logo from './logo.svg';
-// import './App.css';
-// import Home from './Home';
-// import Wordleaux from './Wordleaux';
-
-// const Header = () => {
-//   return (
-//     <header className="App-header">
-//       <Link
-//         to="/"
-//         className="App-link"
-//       >
-//         Home
-//       </Link>
-//     </header>
-//   );
-// };
-
-// function App () {
-//   return (
-//     <div className="App">
-//       {/* <BrowserRouter> */}
-//         {/* <Header />
-//         <Routes>
-//             <Route exact path="/">
-//                 <Home />
-//             </Route>
-//             <Route path="/wordleaux">
-            
-//             </Route>
-//         </Routes> */}
-//       {/* </BrowserRouter> */}
-//       <Wordleaux />
-//     </div>
-//   );
-// };
-
-// export default App;
-
-
+import React, { useEffect } from 'react';
 import "../App.css";
 import GameContext, { useGameState, useGameDispatch } from "./GameContext";
 import { initialState, reducer } from "../state";
 import { GAME_WORDS } from "../lists/words";
-import { keyboard } from '@testing-library/user-event/dist/keyboard';
+
 const PREVENTED_KEYS = ['altKey', 'metaKey', 'ctrlKey'];
-// import { GameRecap, RestartGameButton } from '../Wordleaux';
-// import Gameboard from './Gameboard';
-// import { Keyboard } from './Keyboard';
 
-const times = (length, fn) => Array.from({ length }, (_, i) => fn(i));
-
-// const CurrentBoard = ({board}) => {
-//   const initialSpots = Array.from(5)
-//   return (
-//       <>
-//       {board.rows.map((row,i) => {
-//           return (
-//             <>
-//               <div className="row" id={`row-${i}`}>
-//                   {Object.values(row).map(({ letter, color, s }) => {
-//                       return (
-//                           <div
-//                             className={`spot spot-${color}`}
-//                             id={`round-${i}-spot-${s}`}
-//                             data-letter="letter"
-//                             key={`round-${i}-spot-${s}`}
-//                           >
-//                             <input value={letter} type="text" />
-//                           </div>
-//                       );
-//                   })}
-//               </div>
-//           </>
-//           );
-//       })}
-//       <div className="guess-row guess-row--active" id={`row-${board.length}`}>
-//           {times(5, s => (
-//             <div
-//               className={`spot spot-empty`}
-//               id={`round-${board.length}-spot-${s}`}
-//               data-letter="letter"
-//               key={`round-${board.length}-spot-${s}`}
-//             >
-//               <input value={''} type="text" />
-//             </div>
-//           ))}; 
-//       </div>
-//       </>
-//   );
-// };
-
-// const renderRowHTML = (rowIndex) => (
-//   <div className="guess-row" id={`row-${rowIndex}`}>
-//     {times(5, s => (
-//       <div
-//         className="spot spot-empty"
-//         id={`round-${rowIndex}-spot-${s}`}
-//         key={`round-${rowIndex}-spot-${s}`}
-//       >
-//         <p>&nbsp;</p>
-//       </div>
-//     ))}
-//   </div>
-// );
 export const Toaster = ({
   name = "unnamed",
 }) => {
@@ -143,23 +39,36 @@ export const Gameboard = () => {
   const { board } = useGameState();
 
   return (
-      <div id="board-container">
-        <div id="board">
-          {board.rows.map((row,i) => {
-              return (
-                  <div key={`row-${i}`} data-state={row.state} data-letters={row.letters} className="row" id={`row-${i}`}>
-                      {row.tiles.map((tile, s) => {
-                          return (
-                              <div key={`${tile.number}-${i}`} className={`tile`} data-state={tile.state} data-animation={tile.animation} id={`round-${i}-spot-${s}`} data-letter={tile.letter}>
-                                  {tile.letter || ""}
-                              </div>
-                          );
-                      })}
+    <div id="board-container">
+      <div id="board">
+        {board.rows.map((row,i) => {
+          return (
+            <div
+              key={`row-${i}`}
+              data-state={row.state}
+              data-letters={row.letters}
+              className="row"
+              id={`row-${i}`}
+            >
+              {row.tiles.map((tile, s) => {
+                return (
+                  <div
+                    key={`${tile.number}-${i}`}
+                    className={`tile`}
+                    data-state={tile.state}
+                    data-animation={tile.animation}
+                    id={`round-${i}-spot-${s}`}
+                    data-letter={tile.letter}
+                  >
+                    {tile.letter || ""}
                   </div>
-              );
-          })}
-        </div>
+                );
+              })}
+            </div>
+          );
+        })}
       </div>
+    </div>
   );
 };
 
@@ -219,7 +128,7 @@ const GameRecap = () => {
   const {
     currentRound,
     modalOpen,
-    // winStatus,
+    winStatus,
   } = useGameState();
   const dispatch = useGameDispatch();
   const attempts = currentRound + 1;
@@ -344,6 +253,23 @@ const GameRecap = () => {
   );
 }
 
+export const RestartGameButton = () => {
+    const dispatch = useGameDispatch();
+    
+    const handleClick = (e) => {
+        dispatch({ type: 'RESTART'});
+    }
+
+    return (
+        <div className="restart-btn-container">
+            <button className="btn" onClick={handleClick}>
+                Restart
+            </button>
+        </div>
+    );
+};
+
+
 const Game = () => {
   const {
     modalOpen,
@@ -354,6 +280,7 @@ const Game = () => {
     keyboard,
     toasterMessage,
     toasterDuration,
+    status,
   } = useGameState();
   const dispatch = useGameDispatch();
   const initialKeyboardEvaluation = {
@@ -425,10 +352,9 @@ const Game = () => {
         const [isOver, endState] = isGameOver(tileEvaluation);
         if (isOver) {
           endGame(endState);
-        } else {
-          updateGame()
-        }
+        } 
 
+        updateGame();
         window.clearInterval(intervalID);
       }
     }, delay);
@@ -455,6 +381,7 @@ const Game = () => {
 
      dispatch({ type: "ADD_TOASTER_STATE", payload: { message: message, duration: 10001 }});
      dispatch({ type: "UPDATE_MODAL_STATE", payload: true });
+     dispatch({ type: 'GAME_OVER' });
   }
 
   // Return random message/insult in future.
@@ -556,6 +483,11 @@ const Game = () => {
       return;
     }
 
+    if (status === 'ENDED') {
+      e.preventDefault();
+      return;
+    }
+
     if (PREVENTED_KEYS.some(state => !!e[state])) {
       return;
     }
@@ -605,7 +537,7 @@ const Game = () => {
   return (
     <div id="game">
       <GameRecap isOpen={modalOpen} />
-      {/* <RestartGameButton /> */}
+      <RestartGameButton />
       <div className="toaster" id="game-toaster">
         <Toaster name="game" message={toasterMessage} duration={toasterDuration}/>
       </div>
@@ -616,11 +548,14 @@ const Game = () => {
 };
 
 const Header = () => {
+  const dispatch = useGameDispatch();
+  const handleClick = () => {
+    dispatch({ type: 'UPDATE_MODAL_STATE', payload: true });
+  }
   return (
     <header className='App-header'>
-      <p>React Game</p>
-      <p>Score: (TBD)</p>
-      <button>Play</button>
+      <p>WORDLEAUX</p>
+      <button style={{ backgroundColor: 'initial', maxWidth: '200px' }} onClick={handleClick}>STATS</button>
     </header>
   );
 };

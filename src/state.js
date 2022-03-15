@@ -265,6 +265,10 @@ export const reducer = (state, action) => {
     case "RESTART":
         return {
             ...initialState,
+            answer: getNewAnswer(),
+            currentRound: 0,
+            winStatus: '',
+            status: 'NEW',
         };
     case "GUESSED":
       return { ...state, status: "ENDED" };
@@ -277,54 +281,6 @@ export const reducer = (state, action) => {
                     ...state.rounds[state.currentRound],
                     guess: action.payload,
                 },
-            },
-        };
-    case "ADD_LETTER_BY_COLOR":
-        return {
-            ...state,
-            rounds: {
-                ...state.rounds,
-                [state.currentRound]: {
-                    ...state.rounds[state.currentRound],
-                    score: {
-                        ...state.rounds[state.currentRound].score,
-                        byColor: {
-                            ...state.rounds[state.currentRound].score.byColor,
-                            [action.payload.color]: [
-                                ...state.rounds[state.currentRound].score.byColor[action.payload.color],
-                                action.payload.data,
-                            ],
-                        },
-                    },
-                },
-            },
-        };
-    case "ADD_LETTER_BY_SPOT":
-        return {
-            ...state,
-            rounds: {
-                ...state.rounds,
-                [state.currentRound]: {
-                    ...state.rounds[state.currentRound],
-                    score: {
-                        ...state.rounds[state.currentRound].score,
-                        bySpot: {
-                            ...state.rounds[state.currentRound].score.bySpot,
-                            [action.payload.spot]: [
-                                ...state.rounds[state.currentRound].score.bySpot[action.payload.spot],
-                                action.payload.data,
-                            ],
-                        },
-                    },
-                },
-            },
-        };
-    case "ADD_LETTER_TO_COLOR_LIST":
-        return {
-            ...state,
-            colorLetters: {
-                ...state.colorLetters,
-                [action.color]: [...state.colorLetters[action.color], action.payload],
             },
         };
     case "ADD_BOARD_ROW":
@@ -450,7 +406,7 @@ export const reducer = (state, action) => {
         return {
             ...state,
             status: 'ENDED',
-            winStatus: action.payload.status,
+            currentRound: 0,
         }
     case "UPDATE_MODAL_STATE":
         return {
